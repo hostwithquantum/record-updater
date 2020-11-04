@@ -1,0 +1,4 @@
+customer=name
+target=127.0.0.1
+zone=your-zone.example.org
+records=%s.customer,*.%s.customer
