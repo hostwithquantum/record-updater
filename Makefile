@@ -1,6 +1,9 @@
-.PHONY: build run
+.PHONY: build run test
 build:
-	go build
+	goreleaser --snapshot --skip-publish --rm-dist
 
 run: build
-	./record-updater
+	./dist/record-updater_darwin_amd64/record-updater
+
+test:
+	$(info Nothing yet)
