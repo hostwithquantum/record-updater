@@ -37,6 +37,12 @@ func main() {
 				Value:   "config.ini",
 				EnvVars: []string{"QUANTUM_DNS_CONFIG"},
 			},
+			&cli.StringFlag{
+				Name:    "target",
+				Usage:   "Set the target via command-line (overrules .ini)",
+				Value:   "",
+				EnvVars: []string{"QUANTUM_DNS_TARGET"},
+			},
 		},
 		Action: func(c *cli.Context) error {
 			provider, err := autodns.NewDNSProvider()
@@ -70,7 +76,17 @@ func main() {
 				existingRecords[zone.Name] = zone
 			}
 
-			recordValue := cfg.Section("").Key("target").String()
+			var recordValue string
+			if c.String("target") != "" {
+				recordValue = c.String("target")
+			} else {
+				recordValue = cfg.Section("").Key("target").String()
+			}
+
+			if recordValue == "" {
+				return fmt.Errorf("Missing 'target' via --target or %s", c.String("config"))
+			}
+
 			isCNAME := true
 			if net.ParseIP(recordValue) != nil {
 				isCNAME = false
