@@ -9,7 +9,6 @@ import (
 
 	"github.com/hostwithquantum/record-updater/autodns"
 	"github.com/urfave/cli/v2"
-	"gopkg.in/ini.v1"
 )
 
 var version string
@@ -56,14 +55,17 @@ func main() {
 			}
 			log.Printf("Customer: %s", customer)
 
-			cfg, err := ini.Load(c.String("config"))
+			ru := NewRecordUpdater(c.String("config"))
+			dnsRecords, err := ru.GetStrings("records", ",", "")
 			if err != nil {
 				return err
 			}
 
-			dnsRecords := cfg.Section("").Key("records").Strings(",")
+			zoneName, err := ru.GetString("zone", "")
+			if err != nil {
+				return err
+			}
 
-			zoneName := cfg.Section("").Key("zone").String()
 			log.Printf("Zone: %s\n", zoneName)
 
 			zone, err := provider.GetZone(zoneName)
@@ -80,11 +82,14 @@ func main() {
 			if c.String("target") != "" {
 				recordValue = c.String("target")
 			} else {
-				recordValue = cfg.Section("").Key("target").String()
+				recordValue, err = ru.GetString("target", "")
+				if err != nil {
+					return err
+				}
 			}
 
 			if recordValue == "" {
-				return fmt.Errorf("Missing 'target' via --target or %s", c.String("config"))
+				return fmt.Errorf("Missing 'target' via --target or '%s'", c.String("config"))
 			}
 
 			isCNAME := true
