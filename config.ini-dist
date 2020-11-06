@@ -1,3 +1,6 @@
+; this is an example
+; you can also supply target via --target or QUANTUM_DNS_TARGET
+; if this is not an IP, but another host, a CNAME is created
 target=127.0.0.1
 zone=your-zone.example.org
 records=%s.customer,*.%s.customer
