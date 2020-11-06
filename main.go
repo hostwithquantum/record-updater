@@ -9,7 +9,6 @@ import (
 
 	"github.com/hostwithquantum/record-updater/autodns"
 	"github.com/urfave/cli/v2"
-	"gopkg.in/ini.v1"
 )
 
 var version string
@@ -37,6 +36,12 @@ func main() {
 				Value:   "config.ini",
 				EnvVars: []string{"QUANTUM_DNS_CONFIG"},
 			},
+			&cli.StringFlag{
+				Name:    "target",
+				Usage:   "Set the target via command-line (overrules .ini)",
+				Value:   "",
+				EnvVars: []string{"QUANTUM_DNS_TARGET"},
+			},
 		},
 		Action: func(c *cli.Context) error {
 			provider, err := autodns.NewDNSProvider()
@@ -50,14 +55,17 @@ func main() {
 			}
 			log.Printf("Customer: %s", customer)
 
-			cfg, err := ini.Load(c.String("config"))
+			ru := NewRecordUpdater(c.String("config"))
+			dnsRecords, err := ru.GetStrings("records", ",", "")
 			if err != nil {
 				return err
 			}
 
-			dnsRecords := cfg.Section("").Key("records").Strings(",")
+			zoneName, err := ru.GetString("zone", "")
+			if err != nil {
+				return err
+			}
 
-			zoneName := cfg.Section("").Key("zone").String()
 			log.Printf("Zone: %s\n", zoneName)
 
 			zone, err := provider.GetZone(zoneName)
@@ -70,7 +78,20 @@ func main() {
 				existingRecords[zone.Name] = zone
 			}
 
-			recordValue := cfg.Section("").Key("target").String()
+			var recordValue string
+			if c.String("target") != "" {
+				recordValue = c.String("target")
+			} else {
+				recordValue, err = ru.GetString("target", "")
+				if err != nil {
+					return err
+				}
+			}
+
+			if recordValue == "" {
+				return fmt.Errorf("Missing 'target' via --target or '%s'", c.String("config"))
+			}
+
 			isCNAME := true
 			if net.ParseIP(recordValue) != nil {
 				isCNAME = false
